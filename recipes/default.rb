@@ -17,3 +17,10 @@
 # limitations under the License.
 
 Chef::Log.info "Executing #{cookbook_name}::#{recipe_name}"
+
+case node['platform_family']
+when 'windows'
+  include_recipe "#{cookbook_name}::windows"
+else
+  Chef::Log.fatal "#{cookbook_name} doesn't support #{node['platform_family']} yet"
+end

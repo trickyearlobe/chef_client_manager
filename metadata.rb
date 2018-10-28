@@ -7,5 +7,6 @@ long_description 'Installs/Configures chef_client_version_manager'
 version '0.1.0'
 chef_version '>= 12.1' if respond_to?(:chef_version)
 
-issues_url 'https://github.com/trickyearlobe/chef_client_version_manager/issues'
-source_url 'https://github.com/trickyearlobe/chef_client_version_manager'
+# Older Chef Clients dont support issues_url and source_url so make them conditional
+issues_url 'https://github.com/trickyearlobe/chef_client_version_manager/issues' if respond_to?(:issues_url)
+source_url 'https://github.com/trickyearlobe/chef_client_version_manager' if respond_to?(:source_url)
