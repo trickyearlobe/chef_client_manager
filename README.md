@@ -1,4 +1,4 @@
-# chef_client_version_manager (preview)
+# chef_client_manager (preview)
 
 ## Principles
 

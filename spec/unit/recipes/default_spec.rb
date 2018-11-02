@@ -1,5 +1,5 @@
 #
-# Cookbook:: chef_client_version_manager
+# Cookbook:: chef_client_manager
 # Spec:: default
 #
 # Copyright:: 2018, Richard Nixon
@@ -18,7 +18,7 @@
 
 require 'spec_helper'
 
-describe 'chef_client_version_manager::default' do
+describe 'chef_client_manager::default' do
   context 'When all attributes are default, on an Ubuntu 16.04' do
     let(:chef_run) do
       # for a complete list of available platforms and versions see:

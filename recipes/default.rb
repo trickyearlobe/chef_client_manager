@@ -1,5 +1,5 @@
 #
-# Cookbook:: chef_client_version_manager
+# Cookbook:: chef_client_manager
 # Recipe:: default
 #
 # Copyright:: 2018, Richard Nixon
