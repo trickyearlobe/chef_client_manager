@@ -2,6 +2,7 @@
 default['chef_client_manager']['updater']['interval'] = 60
 default['chef_client_manager']['updater']['splay'] = 30
 default['chef_client_manager']['updater']['airgapped'] = true
+default['chef_client_manager']['updater']['force_cleanup'] = true
 
 # Chef Client CLI parameters
 default['chef_client_manager']['client']['cli']['interval'] = nil
@@ -10,6 +11,7 @@ default['chef_client_manager']['client']['cli']['splay'] = nil
 # Chef Client client.rb settings
 default['chef_client_manager']['client']['rb']['chef_server_url'] = Chef::Config['chef_server_url']
 default['chef_client_manager']['client']['rb']['node_name'] = Chef::Config['node_name']
+default['chef_client_manager']['client']['rb']['default_runlist'] = nil # or 'cookbook::recipe,cookbook::recipe'
 
 # OS Specific parameters
 case node['platform_family']
