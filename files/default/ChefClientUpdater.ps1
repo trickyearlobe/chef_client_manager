@@ -42,20 +42,6 @@ function Log-Event {
 }
 
 # ----------------------------------------------------
-# Install-UpdaterScheduledTask
-# ----------------------------------------------------
-# function Install-UpdaterScheduledTask {
-#   $updaterTask = Get-ScheduledTask -TaskName "ChefClientUpdater" -ErrorAction SilentlyContinue
-#   if ( -Not $updaterTask ) {
-#     Log-Event -EntryType Information -Message "Installing ChefClientUpdater Scheduled Task"
-#     $taskTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Seconds 60) -RandomDelay (New-TimeSpan -Seconds 30)
-#     $taskAction  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Unrestricted -Command $PSCommandPath"
-#     $scheduledTask = Register-ScheduledTask -Force -Trigger $taskTrigger -User 'NT AUTHORITY\SYSTEM' -TaskName 'ChefClientUpdater' -Action $taskAction
-#     $scheduledTask.Enable
-#   }
-# }
-
-# ----------------------------------------------------
 # Stop-ChefClient
 # ----------------------------------------------------
 function Stop-ChefClient {
@@ -86,13 +72,20 @@ function Stop-ChefClient {
 }
 
 function Start-ChefClient {
+  [CmdletBinding(PositionalBinding = $false)]
+  Param (
+    [Parameter(Mandatory=$True,Position=0)]
+    [string] $DefaultRunList
+  )
   Log-Event -EntryType Information -Message "Attempting to start periodic Chef Client"
   # Start any chef client services (which are in any case deprecated)
+  $Started = $False
   foreach ($chefService in Get-Service -Name "chef client", "chef-client" -ErrorAction SilentlyContinue) {
     Log-Event -EntryType Information -Message "Service $($chefService.Name) is $($chefService.Status)"
     if ($chefService.Status -eq 'Stopped') {
       Log-Event -EntryType Information -Message "Starting service $($chefService.Name)"
       $chefService.Start()
+      $Started = $True
     }
   } 
   # Start any chef client scheduled tasks
@@ -100,7 +93,14 @@ function Start-ChefClient {
     if ($chefTask.State -eq 'Disabled') {
       Log-Event -EntryType Information -Message "Enabling sheduled task $($chefTask)"
       Enable-ScheduledTask $chefTask
+      $Started = $True
     }
+  }
+
+  if (($Config.client.rb.default_runlist) -and (-Not ($Config.client.rb.default_runlist -eq ''))) {
+    Invoke-Expression "chef-client -o '$($DefaultRunList)'"
+  } else {
+    Invoke-Expression "chef-client"
   }
 }
 
@@ -122,8 +122,14 @@ function Install-ChefClient {
     [string] $MsiPath
   )
   Log-Event -EntryType Information -Message "Installing package $($MsiPath)"
-  Install-Package $MsiPath
-  Start-ChefClient
+  try {
+    Install-Package $MsiPath -force
+  }
+  catch  {
+	  write-host $_.Exception.Message
+	  Exit 1001
+  }
+
 }
 
 # ----------------------------------------------------
@@ -141,15 +147,12 @@ function Download-ChefClient {
   $chefPackageFullFilename = "c:\ChefClientUpdater\PackageCache\$($chefPackageFilename)"
   if (-Not (Test-Path -Path $chefPackageFullFilename)) {
     Log-Event -EntryType Information -Message "Downloading $($Url) to $($chefPackageFullFilename)"
-    #$OldProgressPreference = $ProgressPreference
-    #$ProgressPreference = 'SilentlyContinue'
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest -Uri $Url -OutFile $chefPackageFullFilename -UseBasicParsing
-    #$ProgressPreference = $OldProgressPreference
   }
   if ((Get-FileHash -Path $chefPackageFullFilename -Algorithm SHA256).Hash.ToLower() -eq $Checksum.ToLower()) {
     Log-Event -EntryType Information -Message "Checksum OK for $($chefPackageFullFilename)"
-    UnInstall-ChefClient
-    Install-ChefClient -MsiPath $chefPackageFullFilename        
+     
   } else {
     Log-Event -EntryType Information -Message "Bad checksum for $($chefPackageFullFilename)... deleting"
     Remove-Item -Path $chefPackageFullFilename
@@ -169,13 +172,24 @@ Log-Event -EntryType Information -Message "Starting Chef Client Updater"
 
 # Install-UpdaterScheduledTask
 
-$Config = Get-Content -Path 'c:\ChefClientUpdater\config.json' | ConvertFrom-Json
+$Config = Get-Content -Path 'C:\ChefClientUpdater\config.json' | ConvertFrom-Json
 $chefPackage = Get-Package -Name 'Chef *' -ErrorAction SilentlyContinue
+$chefPackageFilename = $Config.desired.package.url.split('/')[-1]
+$chefPackageFullFilename = "c:\ChefClientUpdater\PackageCache\$($chefPackageFilename)"
 
 Log-Event -EntryType Information -Message "Chef Client versions: Current = '$($chefPackage.Version)'. Desired = $($Config.desired.package.version)"
 if ( $Config.desired.package.version -ne $chefPackage.Version) {
   Download-ChefClient -Url $Config.desired.package.url -Checksum $Config.desired.package.checksum
+  UnInstall-ChefClient
+  Install-ChefClient -MsiPath $chefPackageFullFilename
+  Start-ChefClient -DefaultRunList $Config.client.rb.default_runlist
 }
 
 Log-Event -EntryType Information -Message "Chef Client Updater run completed"
 $ProgressPreference = $OldProgressPreference
+
+# cleanup
+Unregister-ScheduledTask -TaskName "ChefClientUpdater" -Confirm:$false
+if ( $Config.updater.force_cleanup ) {
+  Remove-Item -Recurse -Force 'C:\ChefClientUpdater'
+}
