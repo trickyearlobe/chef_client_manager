@@ -1,8 +1,8 @@
 #
 # Cookbook:: chef_client_manager
-# Recipe:: default
+# Recipe:: windows
 #
-# Copyright:: 2018, Richard Nixon
+# Copyright:: 2018, Lukasz Kasprzak
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,21 @@
 
 Chef::Log.info "Executing #{cookbook_name}::#{recipe_name}"
 
-case node['platform_family']
-when 'windows'
-  include_recipe "#{cookbook_name}::windows"
-when 'rhel'
-  include_recipe "#{cookbook_name}::rhel"
-else
-  Chef::Log.fatal "#{cookbook_name} doesn't support #{node['platform_family']} yet"
+# Keep updater stuff together
+directory '/opt/ChefClientUpdater'
+directory '/opt/ChefClientUpdater/PackageCache'
+
+# The config file for the updater
+file '/opt/ChefClientUpdater/config.json' do
+  content JSON.pretty_generate(node['chef_client_manager'])
+end
+
+cookbook_file '/opt/ChefClientUpdater/ChefClientUpdater.sh' do
+  source 'ChefClientUpdater.sh'
+  mode '0755'
+end
+
+cron_d 'ChefClientUpdater' do
+  minute  "*/15"
+  command '/opt/ChefClientUpdater/ChefClientUpdater.sh'
 end
