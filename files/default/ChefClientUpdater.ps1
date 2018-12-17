@@ -189,7 +189,7 @@ Log-Event -EntryType Information -Message "Chef Client Updater run completed"
 $ProgressPreference = $OldProgressPreference
 
 # cleanup
-Unregister-ScheduledTask -TaskName "ChefClientUpdater" -Confirm:$false
 if ( $Config.updater.force_cleanup ) {
+  Unregister-ScheduledTask -TaskName "ChefClientUpdater" -Confirm:$false
   Remove-Item -Recurse -Force 'C:\ChefClientUpdater'
 }
