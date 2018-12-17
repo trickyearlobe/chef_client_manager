@@ -32,7 +32,14 @@ cookbook_file '/opt/ChefClientUpdater/ChefClientUpdater.sh' do
   mode '0755'
 end
 
-cron_d 'ChefClientUpdater' do
-  minute  "*/15"
-  command '/opt/ChefClientUpdater/ChefClientUpdater.sh'
+if Gem::Requirement.new('<= 14.4.0').satisfied_by?(Gem::Version.new(Chef::VERSION))
+  cron 'ChefClientUpdater' do
+    minute  "*/15"
+    command '/opt/ChefClientUpdater/ChefClientUpdater.sh'
+  end
+else
+  cron_d 'ChefClientUpdater' do
+    minute  "*/15"
+    command '/opt/ChefClientUpdater/ChefClientUpdater.sh'
+  end
 end
