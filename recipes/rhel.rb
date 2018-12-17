@@ -32,6 +32,7 @@ cookbook_file '/opt/ChefClientUpdater/ChefClientUpdater.sh' do
   mode '0755'
 end
 
+#cron_d resource is available from chef-client 14.4
 if Gem::Requirement.new('<= 14.4.0').satisfied_by?(Gem::Version.new(Chef::VERSION))
   cron 'ChefClientUpdater' do
     minute  "*/15"
