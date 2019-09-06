@@ -16,24 +16,36 @@ function download_chefclient(){
 function start_chefclient(){
   if [ $1 ]
   then
-    chef-client -o $1T
+    chef-client -o $1
   else
     chef-client
 fi
 }
 
-JQ_EXISTS=$(rpm -qa jq)
-if [ $? -ne 0 ]
-  then
-    yum install -y epel-release jq
-fi
 # Get configuration form file 
 CONFIG=$(cat /opt/ChefClientUpdater/config.json)
-URL=$(echo $CONFIG | jq '.desired.package.url' | awk '{split($0,a,"\""); print a[2]}')
-DEFAULT_RUNLIST=$(echo $CONFIG | jq '.client.rb.default_runlist' | awk '{split($0,a,"\""); print a[2]}')
+
+PYTHON_EXISTS=$(rpm -qa python)
+if [ $? -eq 0 ]
+  then
+    echo "Python installation detected using python as JSON parser"
+    URL=$(echo $CONFIG | python -c 'import sys, json; print json.load(sys.stdin)["desired"]["package"]["url"]')
+    DEFAULT_RUNLIST=$(echo $CONFIG | python -c 'import sys, json; print json.load(sys.stdin)["client"]["rb"]["default_runlist"]')
+    DESIRED_VERSION=$(echo $CONFIG | python -c 'import sys, json; print json.load(sys.stdin)["desired"]["package"]["version"]')
+    FORCE_CLEANUP=$(echo $CONFIG | python -c 'import sys, json; print json.load(sys.stdin)["updater"]["force_cleanup"]')
+  else
+    echo "Python installation not detected using jq as JSON parser"
+    JQ_EXISTS=$(rpm -qa jq)
+    if [ $? -ne 0 ]
+      then
+        yum install -y epel-release jq
+    fi
+    URL=$(echo $CONFIG | jq '.desired.package.url' | awk '{split($0,a,"\""); print a[2]}')
+    DEFAULT_RUNLIST=$(echo $CONFIG | jq '.client.rb.default_runlist' | awk '{split($0,a,"\""); print a[2]}')
+    DESIRED_VERSION=$(echo $CONFIG | jq '.desired.package.version' | awk '{split($0,a,"\""); print a[2]}' )
+    FORCE_CLEANUP=$(echo $CONFIG | jq '.updater.force_cleanup')
+fi
 PACKAGE_NAME=$(echo $URL | awk -F '/' '{print $NF}')
-DESIRED_VERSION=$(echo $CONFIG | jq '.desired.package.version' | awk '{split($0,a,"\""); print a[2]}' )
-FORCE_CLEANUP=$(echo $CONFIG | jq '.updater.force_cleanup')
 
 #Check currently installed version of chef-client
 INSTALLED_VERSION=$(rpm -qa chef | awk '{split($0,a,".el"); print a[1]}' | awk '{split($0,a,"chef-"); print a[2]}')
