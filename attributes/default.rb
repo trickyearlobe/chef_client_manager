@@ -19,6 +19,10 @@ when 'windows'
   default['chef_client_manager']['desired']['package']['version'] = '14.6.47.1'
   default['chef_client_manager']['desired']['package']['url'] = 'https://packages.chef.io/files/stable/chef/14.6.47/windows/2016/chef-client-14.6.47-1-x64.msi'
   default['chef_client_manager']['desired']['package']['checksum'] = '5d20a33973472d64c40ff4642a94702c2c2205174f8178123199f40931d8d774'
+when 'rhel'
+  default['chef_client_manager']['desired']['package']['version'] = '14.6.47-1'
+  default['chef_client_manager']['desired']['package']['url'] = 'https://packages.chef.io/files/stable/chef/14.6.47/el/7/chef-14.6.47-1.el7.x86_64.rpm'
+  default['chef_client_manager']['desired']['package']['checksum'] = '95f6af95211a3ffae7db4c64302d4a78f6881cf4d1b4a72c3877fa6f149582c8'
 else
   Chef::Log.fatal "#{cookbook_name} doesn't support #{node['platform_family']} yet"
 end
