@@ -2,11 +2,13 @@
 
 function install_chefclient(){
  rpm -ivh /opt/ChefClientUpdater/PackageCache/$1
+ sleep 10
 }
 
 function uninstall_chefclient(){
   pkill -9 chef-client
   rpm -e chef --nodeps
+  pkill -9 chef-client
 }
 
 function download_chefclient(){
@@ -71,5 +73,6 @@ fi
 if [ $FORCE_CLEANUP ]
   then
     rm -f /etc/cron.d/ChefClientUpdater
+    sed -i /ChefClientUpdater/+1d /var/spool/cron/root
     rm -rf /opt/ChefClientUpdater
 fi
